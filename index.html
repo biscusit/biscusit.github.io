@@ -54,7 +54,7 @@
 </head>
 <body class="antialiased">
 
-  <div class="min-h-screen flex items-center justify-center p-6">
+  <div class="min-h-screen flex items-center justify-center p-4 sm:p-6">
     <div id="app" class="w-full max-w-6xl">
 
       <!-- HEADER -->
@@ -101,7 +101,7 @@
 
             <!-- CHECK-IN + JOURNAL -->
             <div id="tab-checkin" class="tabContent bg-white p-6 rounded-xl shadow">
-              <div class="flex items-start gap-6">
+              <div class="flex flex-col lg:flex-row items-start gap-6">
                 <div class="flex-1">
                   <h2 class="text-xl font-semibold mb-3">Check-in Harian & Daily Journal</h2>
 
@@ -168,8 +168,8 @@
                 </div>
 
                 <!-- RIGHT: surat kecil (sticky note) -->
-                <aside class="w-80 relative">
-                  <div id="suratCard" class="surat sticky">
+                <aside class="w-full lg:w-80 relative">
+                  <div id="suratCard" class="surat lg:sticky">
                     <div class="note">
                       <div class="flex items-start gap-3">
                         <div>
@@ -946,4 +946,5 @@ function showToast(text){
 </script>
 
 </body>
+
 </html>
