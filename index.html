@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Equilibria — Jurnal Harian (Final)</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{
+      --bg: #FFFDF7;
+      --accent: #FFE8A3;
+      --peach: #FFD6C7;
+      --rose: #FFD1DE;
+      --muted: #6b6b6b;
+      --card: rgba(255,255,255,0.92);
+      --ink: #2b2b2b;
+    }
+    body { font-family: 'Poppins', sans-serif; background: var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+    .glass { background: var(--card); backdrop-filter: blur(6px); }
+    .btn-primary { background: linear-gradient(90deg,var(--accent),var(--peach)); color:#2b2b2b; }
+    .tab-active { box-shadow: 0 6px 18px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    .emoji-large { font-size: 1.6rem; }
+    .note {
+      background: linear-gradient(180deg, rgba(255,232,163,0.9), rgba(255,214,199,0.9));
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.04);
+    }
+    .surat {
+      background: linear-gradient(180deg, rgba(255,249,236,1), rgba(255,244,230,0.98));
+      border-left: 6px solid rgba(255,232,163,0.95);
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+      font-size: 0.98rem;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+    .glitter { animation: glitter 900ms ease-in-out; }
+    @keyframes glitter {
+      0% { transform: scale(0.98); opacity: 0.6; }
+      50% { transform: scale(1.02); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .no-print { }
+    @media print { .no-print { display:none !important; } .surat{ box-shadow:none } }
+  </style>
+</head>
+<body class="antialiased">
+
+  <div class="min-h-screen flex items-center justify-center p-6">
+    <div id="app" class="w-full max-w-6xl">
+
+      <!-- HEADER -->
+      <header class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-xl shadow-lg flex items-center justify-center"
+               style="background: linear-gradient(135deg,var(--peach),var(--rose));">
+            <span style="font-weight:700;color:#6b3a3a">EQ</span>
+          </div>
+          <div>
+            <h1 class="text-2xl font-semibold">Equilibria</h1>
+            <p class="text-sm text-gray-600">Jurnal Harian — tempat cerita yang aman & hangat</p>
+          </div>
+        </div>
+
+        <div id="headerActions" class="no-print flex items-center gap-3">
+          <button id="btnPrint" class="px-3 py-2 rounded-full shadow btn-primary">Print / Save PDF</button>
+          <button id="btnExport" class="px-3 py-2 rounded-full shadow border">Export CSV</button>
+          <div id="userBadge" class="hidden bg-white px-3 py-2 rounded-full shadow text-sm"></div>
+          <div id="streakBadge" class="hidden text-sm px-3 py-2 rounded-full bg-yellow-50 border">Streak: <span id="streakCount">0</span> 🔥</div>
+          <button id="btnLogout" class="hidden px-3 py-2 rounded-full shadow border text-sm">Logout</button>
+        </div>
+      </header>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        <!-- AUTH -->
+        <aside id="authCard" class="md:col-span-1 glass p-6 rounded-xl shadow">
+          <div id="authContainer"></div>
+        </aside>
+
+        <!-- APP -->
+        <main id="appArea" class="md:col-span-2 hidden">
+
+          <!-- Tabs -->
+          <nav class="flex gap-2 mb-4">
+            <button class="tabBtn px-4 py-2 rounded-lg flex-1 text-sm text-center tab-active" data-tab="checkin">Check-in & Journal</button>
+            <button class="tabBtn px-4 py-2 rounded-lg flex-1 text-sm text-center" data-tab="history">Riwayat</button>
+            <button class="tabBtn px-4 py-2 rounded-lg flex-1 text-sm text-center" data-tab="chart">Grafik</button>
+            <button class="tabBtn px-4 py-2 rounded-lg flex-1 text-sm text-center" data-tab="profile">Profil</button>
+          </nav>
+
+          <section id="tabContents" class="space-y-6">
+
+            <!-- CHECK-IN + JOURNAL -->
+            <div id="tab-checkin" class="tabContent bg-white p-6 rounded-xl shadow">
+              <div class="flex items-start gap-6">
+                <div class="flex-1">
+                  <h2 class="text-xl font-semibold mb-3">Check-in Harian & Daily Journal</h2>
+
+                  <form id="formCheckin" class="space-y-4">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label class="text-sm text-gray-600">Tanggal</label>
+                        <input id="ci_date" type="date" class="w-full p-2 border rounded mt-1" />
+                      </div>
+
+                      <div>
+                        <label class="text-sm text-gray-600">Mood kecil (emoji)</label>
+                        <select id="ci_moodemoji" class="w-full p-2 border rounded mt-1">
+                          <option value="🙂">🙂 senang</option>
+                          <option value="😌">😌 tenang</option>
+                          <option value="😕">😕 sedih</option>
+                          <option value="😟">😟 cemas</option>
+                          <option value="😫">😫 lelah</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label class="text-sm text-gray-600">Tinggi (cm)</label>
+                        <input id="ci_height" type="number" min="30" max="300" step="0.1" class="w-full p-2 border rounded mt-1" placeholder="contoh: 165" />
+                      </div>
+                      <div>
+                        <label class="text-sm text-gray-600">Berat (kg)</label>
+                        <input id="ci_weight" type="number" min="10" max="300" step="0.1" class="w-full p-2 border rounded mt-1" placeholder="contoh: 60" />
+                      </div>
+                      <div>
+                        <label class="text-sm text-gray-600">Usia</label>
+                        <input id="ci_age" type="number" min="10" max="120" class="w-full p-2 border rounded mt-1" placeholder="contoh: 20" />
+                      </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label class="text-sm text-gray-600">Jam tidur (jam)</label>
+                        <input id="ci_sleep" type="number" min="0" max="24" step="0.1" class="w-full p-2 border rounded mt-1" placeholder="contoh: 7.5" />
+                      </div>
+                      <div>
+                        <label class="text-sm text-gray-600">Tingkat lelah (1 ringan - 5 berat)</label>
+                        <input id="ci_fatigue" type="range" min="1" max="5" step="1" value="3" class="w-full mt-3" />
+                        <div class="text-xs text-gray-500 mt-1">Nilai: <span id="fatigueValue">3</span></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label class="text-sm text-gray-600">Cerita hari ini (bisa curhat bebas)</label>
+                      <textarea id="ci_text" rows="6" class="w-full p-3 border rounded mt-1" placeholder="Tulis apa aja—apa yang kamu rasakan hari ini, kejadian penting, atau hal kecil yang pengen kamu ceritakan"></textarea>
+                      <div class="text-xs text-gray-500 mt-1">Jurnal ini hanya untuk kamu — hangat, aman, tanpa diagnosa.</div>
+                    </div>
+
+                    <div class="flex gap-2">
+                      <button type="submit" id="btnSaveCI" class="flex-1 py-2 rounded-xl text-sm btn-primary shadow">Simpan Journal</button>
+                      <button type="button" id="btnSample" class="py-2 px-3 rounded-xl border text-sm">Isi Contoh</button>
+                    </div>
+
+                    <div id="ciError" class="text-sm text-red-600 mt-2 hidden"></div>
+                  </form>
+                </div>
+
+                <!-- RIGHT: surat kecil (sticky note) -->
+                <aside class="w-80 relative">
+                  <div id="suratCard" class="surat sticky">
+                    <div class="note">
+                      <div class="flex items-start gap-3">
+                        <div>
+                          <div class="text-xs text-gray-500">Surat kecil dari aku — untuk kamu</div>
+                          <div id="suratMood" class="text-lg font-semibold mt-1">-</div>
+                        </div>
+                        <div class="ml-auto text-3xl emoji-large" id="suratEmoji">🙂</div>
+                      </div>
+
+                      <div class="mt-3" id="suratText">
+                        <em>Belum ada pesan — isi journalmu dulu ya.</em>
+                      </div>
+
+                      <div class="mt-3 text-xs text-gray-600" id="suratMeta"></div>
+                    </div>
+                  </div>
+
+                  <div class="mt-4 text-sm text-gray-700">
+                    <div id="out_suggestion"></div>
+                    <div class="mt-2 text-xs text-pink-600" id="out_affirm"></div>
+                  </div>
+                </aside>
+              </div>
+            </div>
+
+            <!-- HISTORY -->
+            <div id="tab-history" class="tabContent hidden bg-white p-6 rounded-xl shadow">
+              <h2 class="text-xl font-semibold mb-3">Riwayat Journal</h2>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="p-2 text-left">Tanggal</th>
+                      <th class="p-2 text-left">Mood</th>
+                      <th class="p-2 text-left">JIWA</th>
+                      <th class="p-2 text-left">OBS</th>
+                      <th class="p-2 text-left">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="historyTable"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- CHART -->
+            <div id="tab-chart" class="tabContent hidden bg-white p-6 rounded-xl shadow">
+              <h2 class="text-xl font-semibold mb-3">Grafik Tren</h2>
+              <canvas id="mainChart" height="140"></canvas>
+            </div>
+
+            <!-- PROFILE -->
+            <div id="tab-profile" class="tabContent hidden bg-white p-6 rounded-xl shadow">
+              <h2 class="text-xl font-semibold mb-3">Profil & Pengaturan</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div class="text-sm text-gray-600">Username</div>
+                  <div id="profileUsername" class="font-medium text-lg mt-1"></div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-600">Aksi</div>
+                  <div class="flex gap-2 mt-2">
+                    <button id="btnLogout2" class="px-3 py-2 rounded-xl border">Logout</button>
+                    <button id="btnDeleteAll" class="px-3 py-2 rounded-xl border text-red-600">Hapus Semua Riwayat</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </section>
+
+        </main>
+
+      </div>
+
+      <footer class="text-center text-sm text-gray-500 mt-6">
+        © Equilibria · Tempat cerita yang aman
+      </footer>
+    </div>
+  </div>
+
+<script>
+/* --------------------------
+   Storage & helpers
+   -------------------------- */
+const USERS_KEY = 'equilibria_users';
+const getUserDataKey = (u) => `equilibria_data_${u}`;
+const getUsedMsgsKey = (u) => `equilibria_usedmsgs_${u}`;
+const getMetaKey = (u) => `equilibria_meta_${u}`;
+const qs = s => document.querySelector(s);
+const qsa = s => document.querySelectorAll(s);
+const todayISO = () => new Date().toISOString().slice(0,10);
+
+function loadUsers(){ try{ return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); }catch(e){ return []; } }
+function saveUsers(arr){ localStorage.setItem(USERS_KEY, JSON.stringify(arr)); }
+
+/* --------------------------
+   Auth UI
+   -------------------------- */
+const authContainer = qs('#authContainer');
+const authCard = qs('#authCard');
+const appArea = qs('#appArea');
+const headerActions = qs('#headerActions');
+const userBadge = qs('#userBadge');
+
+let currentUser = null;
+let mainChart = null;
+
+function renderAuth(){
+  authContainer.innerHTML = `
+    <div>
+      <h3 class="text-lg font-semibold mb-2">Selamat datang di Equilibria</h3>
+      <p class="text-sm text-gray-600 mb-4">Masuk atau buat akun untuk mulai menulis jurnal harian. Tempat ini aman dan hangat.</p>
+
+      <div id="authTabs" class="flex gap-2 mb-4">
+        <button id="tabLogin" class="px-3 py-2 rounded-full bg-white border text-sm flex-1">Login</button>
+        <button id="tabRegister" class="px-3 py-2 rounded-full bg-white border text-sm flex-1">Daftar</button>
+      </div>
+
+      <div id="loginView">
+        <label class="block text-sm text-gray-600">Username</label>
+        <input id="auth_username" class="w-full p-2 border rounded mt-1" />
+        <label class="block text-sm text-gray-600 mt-3">Password</label>
+        <input id="auth_password" type="password" class="w-full p-2 border rounded mt-1" />
+        <div id="authError" class="text-sm text-red-600 mt-2 hidden"></div>
+        <div class="flex gap-2 mt-4">
+          <button id="btnLogin" class="flex-1 py-2 rounded-xl btn-primary">Masuk</button>
+          <button id="btnToRegister" class="py-2 px-3 rounded-xl border">Buat akun</button>
+        </div>
+      </div>
+
+      <div id="registerView" class="hidden">
+        <label class="block text-sm text-gray-600">Pilih username</label>
+        <input id="reg_username" class="w-full p-2 border rounded mt-1" />
+        <label class="block text-sm text-gray-600 mt-3">Pilih password</label>
+        <input id="reg_password" type="password" class="w-full p-2 border rounded mt-1" />
+        <label class="block text-sm text-gray-600 mt-3">Konfirmasi password</label>
+        <input id="reg_password2" type="password" class="w-full p-2 border rounded mt-1" />
+        <div id="regError" class="text-sm text-red-600 mt-2 hidden"></div>
+        <div class="flex gap-2 mt-4">
+          <button id="btnRegister" class="flex-1 py-2 rounded-xl btn-primary">Daftar</button>
+          <button id="btnToLogin" class="py-2 px-3 rounded-xl border">Kembali</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  qs('#tabLogin').addEventListener('click', ()=>{ qs('#loginView').classList.remove('hidden'); qs('#registerView').classList.add('hidden'); });
+  qs('#tabRegister').addEventListener('click', ()=>{ qs('#loginView').classList.add('hidden'); qs('#registerView').classList.remove('hidden'); });
+  qs('#btnToRegister').addEventListener('click', ()=> qs('#tabRegister').click());
+  qs('#btnToLogin').addEventListener('click', ()=> qs('#tabLogin').click());
+
+  qs('#btnLogin').addEventListener('click', ()=>{
+    const u = qs('#auth_username').value.trim();
+    const p = qs('#auth_password').value;
+    const err = qs('#authError');
+    err.classList.add('hidden');
+    if(!u || !p){ err.textContent = 'Isi username & password.'; err.classList.remove('hidden'); return; }
+    const users = loadUsers();
+    const found = users.find(x => x.username === u && x.password === p);
+    if(!found){ err.textContent = 'Username atau password salah.'; err.classList.remove('hidden'); return; }
+    loginUser(u);
+  });
+
+  qs('#btnRegister').addEventListener('click', ()=>{
+    const u = qs('#reg_username').value.trim();
+    const p = qs('#reg_password').value;
+    const p2 = qs('#reg_password2').value;
+    const err = qs('#regError');
+    err.classList.add('hidden');
+    if(!u || !p || !p2){ err.textContent = 'Lengkapi semua kolom.'; err.classList.remove('hidden'); return; }
+    if(p !== p2){ err.textContent = 'Password tidak cocok.'; err.classList.remove('hidden'); return; }
+    const users = loadUsers();
+    if(users.find(x=>x.username===u)){ err.textContent = 'Username telah dipakai.'; err.classList.remove('hidden'); return; }
+    users.push({ username: u, password: p });
+    saveUsers(users);
+    localStorage.setItem(getUserDataKey(u), JSON.stringify([]));
+    // init used messages & meta
+    const usedInit = {}; for(let r=0;r<10;r++) usedInit[r]=[];
+    localStorage.setItem(getUsedMsgsKey(u), JSON.stringify(usedInit));
+    localStorage.setItem(getMetaKey(u), JSON.stringify({ lastVisit: new Date().toISOString(), streak: 1 }));
+    alert('Akun berhasil dibuat. Silakan login.');
+    qs('#tabLogin').click();
+    qs('#auth_username').value = u;
+  });
+}
+
+/* --------------------------
+   Login / Logout / Meta (streak & reminders)
+   -------------------------- */
+function loginUser(username){
+  currentUser = username;
+  authCard.classList.add('hidden');
+  appArea.classList.remove('hidden');
+  headerActions.querySelectorAll('button, #userBadge, #streakBadge').forEach(el=>el.classList.remove('hidden'));
+  userBadge.textContent = username;
+  qs('#profileUsername').textContent = username;
+  qs('#btnLogout').addEventListener('click', logoutUser);
+  qs('#btnLogout').classList.remove('hidden');
+  qs('#btnLogout2')?.addEventListener('click', logoutUser);
+
+  updateMetaOnVisit();
+  renderUserData();
+  qs('#ci_date').value = todayISO();
+  switchTab('checkin');
+
+  setTimeout(()=> showToast(`Hai ${username}, senang kamu balik lagi hari ini 🤍`), 500);
+}
+
+function logoutUser(){
+  if(!confirm('Yakin mau logout?')) return;
+  currentUser = null;
+  authCard.classList.remove('hidden');
+  appArea.classList.add('hidden');
+  headerActions.querySelectorAll('button, #userBadge, #streakBadge').forEach(el=>el.classList.add('hidden'));
+  qs('#btnLogout').classList.add('hidden');
+  renderAuth();
+}
+
+function loadMeta(){ try{ return JSON.parse(localStorage.getItem(getMetaKey(currentUser)) || '{}'); }catch(e){ return {}; } }
+function saveMeta(meta){ if(!currentUser) return; localStorage.setItem(getMetaKey(currentUser), JSON.stringify(meta)); }
+
+function updateMetaOnVisit(){
+  if(!currentUser) return;
+  const meta = loadMeta();
+  const last = meta.lastVisit ? new Date(meta.lastVisit).toISOString().slice(0,10) : null;
+  const today = todayISO();
+  if(!meta.lastVisit){
+    meta.streak = 1;
+    meta.lastVisit = new Date().toISOString();
+  } else if(last === today){
+    // same day
+  } else {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    const ystr = yesterday.toISOString().slice(0,10);
+    if(last === ystr) meta.streak = (meta.streak || 0) + 1;
+    else meta.streak = 1;
+    meta.lastVisit = new Date().toISOString();
+  }
+  saveMeta(meta);
+  qs('#streakCount').textContent = meta.streak || 0;
+}
+
+function checkAbsenceReminder(){
+  if(!currentUser) return;
+  const meta = loadMeta();
+  if(!meta.lastVisit) return;
+  const last = new Date(meta.lastVisit);
+  const diff = (Date.now() - last.getTime()) / (1000*60*60*24);
+  if(diff >= 2 && diff < 12) {
+    setTimeout(()=> showToast(`Hei, kita kangen baca cerita kamu. Kalau mau, aku ada di sini kapan aja ✨`), 800);
+  }
+}
+
+/* --------------------------
+   Data per user & used messages
+   -------------------------- */
+function loadDataForUser(){ if(!currentUser) return []; try{ return JSON.parse(localStorage.getItem(getUserDataKey(currentUser)) || '[]'); }catch(e){ return []; } }
+function saveDataForUser(arr){ if(!currentUser) return; localStorage.setItem(getUserDataKey(currentUser), JSON.stringify(arr)); }
+function loadUsedMsgs(){ if(!currentUser) return {}; try{ return JSON.parse(localStorage.getItem(getUsedMsgsKey(currentUser)) || '{}'); }catch(e){ return {}; } }
+function saveUsedMsgs(obj){ if(!currentUser) return; localStorage.setItem(getUsedMsgsKey(currentUser), JSON.stringify(obj)); }
+
+/* --------------------------
+   Sentiment / Jiwa Score (simple dictionary + negation + intensifier)
+   -------------------------- */
+const posWords = { 'senang':2,'bahagia':3,'lega':2,'bersyukur':3,'seneng':2,'baik':1.5,'tenang':2,'semangat':2,'ceria':2,'puas':2, 'nyaman':2 };
+const negWords = { 'capek':-1.5,'lelah':-1.5,'pusing':-1.5,'malas':-1,'bingung':-1,'sedih':-2,'stress':-2.5,'stres':-2.5,'cemas':-2,'takut':-2,'kesal':-1.5,'kecewa':-1.8,'hancur':-3,'putus asa':-3 };
+const intensifiers = { 'sangat':1.5, 'banget':1.6, 'amat':1.4, 'sekali':1.5 };
+const negations = ['tidak','nggak','gak','bukan','tak'];
+
+function analyzeTextSentiment(text){
+  let s = (text||'').toLowerCase();
+  s = s.replace(/[^\w\s\u00C0-\u024F\u1E00-\u1EFF]/g,' ');
+  const tokens = s.split(/\s+/).filter(Boolean);
+  let score = 0;
+  for(let i=0;i<tokens.length;i++){
+    const w = tokens[i];
+    let intens = 1;
+    if(i>0 && intensifiers[tokens[i-1]]) intens = intensifiers[tokens[i-1]];
+    let neg = 1;
+    if(i>0 && negations.includes(tokens[i-1])) neg = -1;
+    if(posWords[w]) score += posWords[w] * intens * neg;
+    if(negWords[w]) score += negWords[w] * intens * neg;
+  }
+  const mapped = ((score + 10) / 20) * 100;
+  return clamp(Math.round(mapped), 0, 100);
+}
+
+/* --------------------------
+   Calculations: BMI, BMR, physical, mental, OBS
+   -------------------------- */
+function clamp(v,min,max){ return Math.min(max, Math.max(min, v)); }
+
+function calculateFrom(entry){
+  const h_m = (entry.height_cm/100) || 0.0001;
+  const bmi = (entry.weight_kg && h_m) ? (entry.weight_kg / (h_m*h_m)) : 0;
+  let bmr = 0;
+  if(entry.sex === 'male') bmr = 10*entry.weight_kg + 6.25*entry.height_cm - 5*entry.age + 5;
+  else bmr = 10*entry.weight_kg + 6.25*entry.height_cm - 5*entry.age - 161;
+
+  const ideal = 21.7;
+  const physical = clamp(100 - Math.abs(bmi - ideal) * 5, 0, 100);
+
+  const sleepScore = clamp((entry.sleep/8) * 100, 0, 100);
+  const fatigueScore = clamp(((6 - entry.fatigue) / 5) * 100, 0, 100);
+
+  const textScore = analyzeTextSentiment(entry.text || '');
+
+  const mental = Number((textScore*0.6 + sleepScore*0.2 + fatigueScore*0.2).toFixed(1));
+  const obs = Number(((physical + mental) / 2).toFixed(1));
+
+  return {
+    bmi: Number(isFinite(bmi) ? bmi.toFixed(2) : 0),
+    bmr: Math.round(bmr) || 0,
+    physical: Number(physical.toFixed(1)),
+    textScore,
+    sleepScore: Number(sleepScore.toFixed(1)),
+    fatigueScore: Number(fatigueScore.toFixed(1)),
+    mental,
+    obs
+  };
+}
+
+/* --------------------------
+   Comfort messages database (100 messages — 10 per range)
+   Tone: netral lembut (3-4 kalimat vibe)
+   -------------------------- */
+const comfortMessages = [
+  // Range 0-10 (index 0)
+  [
+`Hari ini kelihatannya benar-benar berat untukmu. Tidak apa kalau kamu butuh waktu untuk diam dan bernapas. Coba beri diri jeda kecil—tidak harus menyelesaikan apa pun sekarang.`,
+`Sepertinya hari ini penuh beban. Kamu berhak merasa lelah dan tidak sepenuhnya baik. Duduk sebentar, tarik napas dalam-dalam, dan biarkan tubuhmu sedikit rileks.`,
+`Kalau kepala terasa penuh, biarkan ia tenang dulu. Tidak apa menunda tugas untuk beberapa saat. Istirahat itu bukan kelemahan, melainkan perawatan yang kamu butuhkan.`,
+`Ada hari-hari ketika energi kita habis, dan itu normal. Kamu tidak harus terus menerus kuat. Pelan-pelan saja, kamu masih berharga meski hanya bernafas pelan.`,
+`Jangan paksa diri untuk tersenyum hari ini jika belum mau. Biarkan perasaan itu ada dan perlahan reda. Semoga malam ini memberimu jeda yang menenangkan.`,
+`Kalau rasanya hancur, ingat bahwa bertahan saja sudah luar biasa. Kamu boleh menyerah sebentar pada istirahat. Nanti kamu bisa bangkit lagi dari tempat yang lebih tenang.`,
+`Saat semua terasa berat, beri dirimu izin untuk tidak produktif. Lakukan hal kecil yang menenangkan—mungkin secangkir minum hangat. Kamu layak mendapat kelembutan itu.`,
+`Nggak apa jika kamu butuh me-restart diri hari ini. Ambil waktu sebentar untuk diam, dengarkan napasmu. Itu sudah langkah perawatan diri yang baik.`,
+`Hari yang sulit bukan ukuran dirimu. Kamu masih manusia yang butuh ruang untuk pulih. Perlahan-lahan, beri ruang pada dirimu sendiri.`,
+`Kamu sudah melakukan banyak hanya dengan bertahan sampai sini. Jangan lupa beri tubuh izin untuk istirahat. Semoga tidur nanti lebih lembut untukmu.`
+  ],
+
+  // 11-20 (index 1)
+  [
+`Kayaknya energimu lagi turun hari ini. Tidak apa—yang penting kamu tetap melakukan apa yang mampu. Sediakan waktu istirahat yang tulus tanpa rasa bersalah.`,
+`Mungkin hari ini terasa berat tapi tidak sampai membuatmu runtuh. Itu kemajuan kecil yang penting. Coba lakukan sesuatu ringan yang membuatmu lega.`,
+`Kalau kamu merasa capek, itu tanda tubuhmu minta perhatian. Makan sesuatu yang menghangatkan atau tidur sebentar bisa membantu. Kamu pantas diperlakukan lembut.`,
+`Kamu belum harus selesai hari ini. Ambil satu langkah kecil dan beri penghargaan pada dirimu. Istirahat itu akan membantu besok lebih kuat.`,
+`Terkadang yang kita butuhkan hanya jeda singkat. Tarik napas, pejamkan mata sejenak. Biar rasa berat itu sedikit mereda.`,
+`Ada usaha dalam setiap hari yang kamu jalani, meski kecil. Aku melihat usaha itu. Sekarang saatnya merawat dirimu dengan hal-hal sederhana.`,
+`Kalau mood turun, tidak berarti segala hal berantakan. Itu hanya fase. Coba hubungi teman atau lakukan hal kecil yang membuatmu aman.`,
+`Hari ini mungkin tidak sempurna, tapi kamu sudah melakukan yang kamu bisa. Beri dirimu tugas yang ringan dan nikmati hasilnya.`,
+`Kamu berhak istirahat dari semua tuntutan. Lakukan sesuatu yang menghangatkan hati—maksudnya yang benar-benar membuatmu rileks.`,
+`Malam ini, biarkan tubuhmu menenangkan; kamu layak mengalami ketenangan setelah hari yang melelahkan.`
+  ],
+
+  // 21-30 (index 2)
+  [
+`Sepertinya banyak hal berputar di kepala kamu hari ini. Tidak apa untuk menarik mundur sedikit dan menata ulang. Langkah kecil akan terasa berarti nanti.`,
+`Kalau perasaanmu campur aduk, itu normal. Kamu sedang memproses dan itu proses yang butuh waktu. Perlahan saja, jangan paksakan semuanya selesai sekarang.`,
+`Hari yang melelahkan bisa membuat segala sesuatu terasa lebih berat. Beri diri kesempatan untuk recharge—tidur sebentar atau dengarkan lagu menenangkan.`,
+`Kamu mungkin belum merasa baik, tapi kamu juga tidak runtuh. Itu menunjukkan ketangguhanmu. Istirahatlah sebagai hadiah kecil untuk dirimu.`,
+`Kadang cukup dengan menulis satu hal yang membuatmu lega, itu sudah membantu. Coba tulis satu hal kecil dan rasakan perbedaannya.`,
+`Kalau kepala terasa penuh, istirahat itu solusi yang sopan untuk tubuh. Jangan remehkan waktu kecil yang kamu beri pada diri sendiri.`,
+`Kamu tidak harus menyelesaikan semuanya sekarang. Satu detik jeda dapat menolong. Beri tubuh ruang untuk bernapas.`,
+`Hari yang berat tidak turun langsung ke esok—kamu masih bisa memulihkan langkahmu. Pelan-pelan saja, kamu akan sampai di tempat yang lebih tenang.`,
+`Ada nilai dalam perlambatan. Kamu tidak kalah karena mengambil waktu. Itu bentuk kebijaksanaan untuk merawat diri.`,
+`Sore ini cobalah hindari layar beberapa saat dan lakukan hal lembut untukmu. Itu bisa membantu menenangkan pikiran.`
+  ],
+
+  // 31-40 (index 3)
+  [
+`Kamu terlihat menahan banyak hari ini. Tidak apa untuk mengakui lelah itu. Lakukan rutinitas sederhana yang bikin nyaman—misal minum hangat atau stretching ringan.`,
+`Kalau perasaan naik turun, beri waktu untuk perasaan itu mengalir. Tidak semua harus diatur sekaligus. Satu langkah kecil itu berarti.`,
+`Kamu masih kuat walau terasa berat. Hargai langkahmu sendiri—kamu sedang berproses. Sekarang beri tubuh jeda sejenak.`,
+`Emosi yang tidak stabil itu melelahkan. Coba teknik napas 4-4-4 sebentar. Kadang hal sederhana membantu menenangkan otak.`,
+`Kalau kamu belum siap bercerita, tidak apa. Keberadaanmu cukup. Saat siap, kamu bisa ceritakan sedikit demi sedikit.`,
+`Kadang kita butuh izin untuk berhenti memikirkan semua hal sekaligus. Berikan izin itu pada diri sendiri sekarang.`,
+`Perlambat ritme dan lakukan satu hal yang membuatmu rileks. Tidak perlu daftar panjang—cukup satu hal kecil yang terasa baik.`,
+`Kamu tidak harus mengatasi semuanya sendirian. Jika ada yang bisa membantu, coba buka pada seseorang. Berbagi sering meringankan.`,
+`Rasa lelah emosional butuh perhatian lembut. Pijat pelan leher atau kompres hangat bisa menenangkan tubuhmu.`,
+`Setelah hari seperti ini, tidur yang nyaman sangat membantu. Atur suasana kamar agar lebih hangat dan tenang.`
+  ],
+
+  // 41-50 (index 4)
+  [
+`Hari ini terasa biasa tapi ada sedikit letih. Itu wajar. Coba beri waktu santai sejenak sebelum tidur agar badanmu pulih.`,
+`Kamu melakukan hal yang perlu hari ini, dan itu cukup. Jangan paksa dirimu untuk ekstra produktif saat energi menipis.`,
+`Momen netral juga butuh perawatan. Lakukan hal kecil yang menyenangkan—menonton sesuatu ringan atau membaca sebentar.`,
+`Kalau kamu merasa sedikit drained, jangan abaikan itu. Sesekali rehat itu investasi agar besok lebih bugar.`,
+`Kamu sudah menjalani hari dengan baik. Sekarang beri tubuh sedikit perhatian—minum air, makan ringan, dan rileks.`,
+`Tidak semua hari penuh warna, dan tidak apa. Hari yang sederhana juga berarti kesempatan untuk merawat diri.`,
+`Sore ini, coba lakukan peregangan ringan. Itu membantu mengurangi ketegangan fisik yang mengganggu mood.`,
+`Kamu pantas mendapatkan waktu tenang malam ini. Matikan notifikasi, beri otak jeda untuk menenangkan diri.`,
+`Hal-hal kecil yang menenangkan akan membantu memperbaiki suasana hati. Pilih satu dan nikmati dengan sengaja.`,
+`Kamu menang hari ini dengan cara yang tenang. Rayakan dengan hal sederhana yang bikin nyaman.`
+  ],
+
+  // 51-60 (index 5)
+  [
+`Hari ini terasa cukup baik, meski masih ada sisa lelah. Istirahat singkat akan bantu memulihkan. Jangan lupa hidrasi yang cukup.`,
+`Ada hal-hal positif hari ini yang mungkin kecil, tapi penting. Simpan itu sebagai penguat. Kamu sedang melakukan yang baik.`,
+`Keseimbangan yang kamu capai itu berharga. Pertahankan kebiasaan baik malam ini dan beri tubuh waktu pulih.`,
+`Kamu berhasil melewati hari dengan stabil. Rayakan dengan hal sederhana—misal camilan kecil atau playlist tenang.`,
+`Energi kamu lumayan baik hari ini. Jangan paksakan ekstra aktivitas; pelan-pelan lebih aman untuk kesinambungan.`,
+`Saat sudah berjalan baik, penting untuk menutup hari dengan perawatan. Istirahat cukup akan buat besok lebih hangat.`,
+`Kamu melakukan yang cukup untuk hari ini. Ingat untuk ucapkan terima kasih pada diri sendiri sebelum tidur.`,
+`Tidur yang berkualitas malam ini bisa pastikan mood stabil esok. Siapkan ritual tidur yang menenangkan.`,
+`Kamu membuat langkah-langkah kecil yang positif. Biarkan hasilnya tumbuh perlahan—kamu nggak perlu terburu-buru.`,
+`Simpan hal yang membuatmu lega hari ini sebagai pengingat: kamu bisa menciptakan momen baik untuk diri sendiri.`
+  ],
+
+  // 61-70 (index 6)
+  [
+`Ada ketenangan ringan dalam dirimu hari ini. Terus pelihara itu dengan hal sederhana seperti napas dalam dan minum air hangat.`,
+`Kamu kelihatan stabil, itu menandakan kebiasaan baikmu bekerja. Jaga ritme tidur dan makan yang sehat.`,
+`Rasa tenang yang kamu rasakan patut disyukuri. Lindungi momen itu dengan perawatan kecil untuk tubuh dan pikiran.`,
+`Kamu membuat hari yang cukup damai untuk diri sendiri. Biarkan perasaan ini membantu membentuk malam yang tenang.`,
+`Ketenangan itu butuh perawatan berkelanjutan. Lakukan hal kecil yang menyenangkan sebelum tidur.`,
+`Kamu menjalani hari dengan cukup dewasa dan lembut. Terus lakukan rutinitas yang mendukung kestabilanmu.`,
+`Kalau ada sedikit susah, ingat bahwa kamu sudah punya fondasi yang baik hari ini. Istirahat sebagai bentuk perawatan.`,
+`Energi nyaman ini perlu dihormati. Hindari aktivitas berat sebelum tidur agar rasa tenang tetap ada.`,
+`Simpan momen ini di kepala sebagai bukti bahwa kamu bisa merawat diri dengan baik. Itu berharga.`,
+`Semoga malam ini memberimu tidur yang pulih. Kamu sudah pantas mendapat hari yang lebih lembut.`
+  ],
+
+  // 71-80 (index 7)
+  [
+`Hari ini terasa lebih cerah untukmu. Nikmati sensasi ringan itu dan simpan sebagai energi positif untuk esok.`,
+`Ada banyak momen kecil yang menyenangkan hari ini. Biarkan perasaan itu menempel dan menghangatkan malammu.`,
+`Kamu mampu menciptakan hari yang baik untuk dirimu sendiri. Itu kerja bagus—ikan sedikit rasa bangga sebelum tidur.`,
+`Perasaan yang stabil ini tanda kebiasaanmu bekerja. Tetap lakukan hal-hal yang bikin nyaman agar besok tetap terjaga.`,
+`Kamu sedang pada ritme yang nyaman. Jangan lupa pertahankan pola tidur yang mendukung mood baik ini.`,
+`Hari ini kamu berhasil menjaga diri dengan lembut. Rayakan dengan istirahat yang pantas.`,
+`Simpan momen manis hari ini sebagai penguat ketika besok ada hambatan. Kamu sedang berada di jalur yang bagus.`,
+`Kebaikan kecil yang kamu lakukan hari ini berdampak besar. Lanjutkan perlahan dan nikmati hasilnya.`,
+`Energi positifmu menular—biarkan itu menuntunmu ke malam yang tenang. Kamu pantas merasakan ini.`,
+`Kamu sedang melakukan hal-hal dengan hati. Itu memberi kedamaian; pertahankan dengan ritme yang lembut.`
+  ],
+
+  // 81-90 (index 8)
+  [
+`Kamu menjalani hari dengan baik — tenang dan konsisten. Hargai usaha kecil yang sudah kamu lakukan hari ini.`,
+`Ada keseimbangan yang kuat dalam caramu mengatur diri. Itu sangat positif. Istirahat yang cukup akan bantu mempertahankan itu.`,
+`Kamu tampak manage hari dengan matang. Simpan perasaan baik itu sebagai bukti progresmu secara perlahan.`,
+`Hidup terasa lebih lembut untukmu hari ini. Biarkan itu jadi bahan penyemangat untuk hari-hari berikutnya.`,
+`Kamu sedang melakukan hal-hal dengan bijak. Nikmati momen itu tanpa tekanan untuk terus sempurna.`,
+`Energi positif ini hasil dari perawatan konsisten pada diri sendiri. Teruskan, tapi jangan lupa istirahat.`,
+`Ketenanganmu hari ini patut diapresiasi. Simpan rasa itu sebagai bekal, dan pulihkan badan dengan tidur nyenyak.`,
+`Kamu sedang di jalur yang baik — pelihara kebiasaan yang memberi rasa aman dan nyaman.`,
+`Jangan ragu memberi penghargaan untuk diri sendiri; itu bagian dari perawatan emosional yang sehat.`,
+`Kamu layak mendapat hari-hari seperti ini. Simpan momen positif ini di catatan kecilmu.`
+  ],
+
+  // 91-100 (index 9)
+  [
+`Hari ini kamu benar-benar menata diri dengan baik. Rasakan itu sepenuhnya dan biarkan dirimu menikmati hasilnya.`,
+`Ada keharmonisan dalam keseharianmu sekarang. Itu bukan kebetulan, itu hasil perhatian yang konsisten pada dirimu.`,
+`Kamu berada di fase yang sangat stabil; hargai pencapaian kecil itu. Istirahat yang memadai akan menjaga ritme ini.`,
+`Energi hangat yang kamu miliki hari ini perlu dipertahankan dengan perawatan kecil—makanan bergizi, tidur cukup, dan jeda singkat.`,
+`Semua usaha kecil yang kamu lakukan kini menghasilkan hari yang lembut. Teruskan, tapi jangan lupa memberi ruang istirahat.`,
+`Kamu sedang memanen hasil usaha merawat diri. Simpan perasaan ini sebagai motivasi untuk menjaga kebiasaan baik.`,
+`Ketenanganmu menunjukkan kedewasaan emosional. Tetap rendah hati, tapi rayakan pencapaian personal ini.`,
+`Kamu layak mendapatkan penghargaan pribadi—lakukan sesuatu yang menyenangkan sebagai hadiah kecil.`,
+`Hari-hari seperti ini penting untuk diperhatikan dan dimanfaatkan sebaik mungkin. Nikmati, kamu pantas mendapatkannya.`,
+`Sekarang saatnya menutup hari dengan rasa syukur kecil. Tidurlah dengan tenang, besok masih banyak hal baik yang mungkin datang.`
+  ]
+];
+
+/* --------------------------
+   Message selection logic
+   -------------------------- */
+function rangeIndexFromScore(score){
+  if(score <= 10) return 0;
+  if(score <= 20) return 1;
+  if(score <= 30) return 2;
+  if(score <= 40) return 3;
+  if(score <= 50) return 4;
+  if(score <= 60) return 5;
+  if(score <= 70) return 6;
+  if(score <= 80) return 7;
+  if(score <= 90) return 8;
+  return 9;
+}
+
+function pickComfortMessage(score){
+  const idx = rangeIndexFromScore(score);
+  const arr = comfortMessages[idx];
+  if(!currentUser) {
+    return arr[Math.floor(Math.random()*arr.length)];
+  }
+  let used = loadUsedMsgs();
+  if(!used || typeof used !== 'object') used = {};
+  if(!used[idx]) used[idx] = [];
+  // reset if exhausted
+  if(used[idx].length >= arr.length) used[idx] = [];
+  const unused = [];
+  for(let i=0;i<arr.length;i++) if(!used[idx].includes(i)) unused.push(i);
+  const pickIdx = unused[Math.floor(Math.random()*unused.length)];
+  used[idx].push(pickIdx);
+  saveUsedMsgs(used);
+  return arr[pickIdx];
+}
+
+/* --------------------------
+   UI renderers
+   -------------------------- */
+function renderUserData(){
+  renderHistoryTable();
+  renderChart();
+  const d = loadDataForUser();
+  if(d.length) renderSummary(d[d.length-1]);
+  else {
+    renderSummary(null);
+    qs('#suratText').innerHTML = '<em>Belum ada pesan — isi journalmu dulu ya.</em>';
+  }
+  const meta = loadMeta();
+  qs('#streakCount').textContent = meta.streak || 0;
+  checkAbsenceReminder();
+}
+
+function renderSummary(rec){
+  if(!rec){
+    qs('#suratMood').textContent = '-';
+    qs('#suratEmoji').textContent = '🙂';
+    qs('#suratText').innerHTML = '<em>Belum ada pesan — isi journalmu dulu ya.</em>';
+    qs('#suratMeta').textContent = '';
+    qs('#out_suggestion').innerHTML = '';
+    qs('#out_affirm').textContent = '';
+    return;
+  }
+  const ms = rec.mental;
+  let moodLabel = 'Netral';
+  let emoji = '😌';
+  if(ms >= 90){ moodLabel = 'Sangat Baik'; emoji='✨'; }
+  else if(ms >= 75){ moodLabel = 'Baik'; emoji='😊'; }
+  else if(ms >= 60){ moodLabel = 'Tenang'; emoji='😌'; }
+  else if(ms >= 40){ moodLabel = 'Sedikit Tertekan'; emoji='😕'; }
+  else { moodLabel = 'Butuh Perhatian'; emoji='😔'; }
+
+  qs('#suratMood').textContent = moodLabel;
+  qs('#suratEmoji').textContent = rec.moodEmoji || emoji;
+
+  const comfort = pickComfortMessage(rec.mental);
+  const metaText = `JIWA: ${rec.mental} / 100 · OBS: ${rec.obs} / 100 · IMT: ${rec.bmi}`;
+  const suggestionArr = [];
+  if(rec.bmi < 18.5) suggestionArr.push('IMT rendah: makan camilan bergizi kecil hari ini.');
+  else if(rec.bmi <= 24.9) suggestionArr.push('IMT sehat: pertahankan pola makan seimbang.');
+  else suggestionArr.push('IMT di atas ideal: aktivitas ringan 20 menit bisa membantu.');
+  if(rec.sleepScore < 60) suggestionArr.push('Tidur kurang: usahakan tidur 7–9 jam.');
+  if(rec.fatigueScore < 60) suggestionArr.push('Lelah tinggi: beri jeda istirahat singkat sekarang.');
+
+  qs('#suratText').innerHTML = `<div class="surat">${comfort}</div>`;
+  qs('#suratMeta').textContent = metaText;
+  qs('#out_suggestion').innerHTML = suggestionArr.map(s=>`• ${s}`).join('<br>');
+  const affs = [
+    "Kamu tidak sendiri — aku selalu ada di sini untuk dengerin.",
+    "Kamu berharga, dan kamu pantas beristirahat.",
+    "Langkah kecilmu hari ini sangat berarti.",
+    "Tarik napas pelan. Kamu layak mendapat kelembutan."
+  ];
+  qs('#out_affirm').textContent = affs[Math.floor(Math.random()*affs.length)];
+  const card = qs('#suratCard'); card.classList.remove('glitter'); void card.offsetWidth; card.classList.add('glitter');
+}
+
+/* --------------------------
+   History table & actions
+   -------------------------- */
+function renderHistoryTable(){
+  const table = qs('#historyTable');
+  const arr = loadDataForUser().slice().sort((a,b)=> new Date(b.date) - new Date(a.date));
+  table.innerHTML = '';
+  if(!arr.length){
+    table.innerHTML = `<tr><td colspan="5" class="p-3 text-sm text-gray-500">Belum ada riwayat.</td></tr>`;
+    return;
+  }
+  arr.forEach((r, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="p-2">${r.date}</td>
+      <td class="p-2">${r.moodEmoji || '🙂'}</td>
+      <td class="p-2">${r.mental}</td>
+      <td class="p-2">${r.obs}</td>
+      <td class="p-2">
+        <button data-idx="${idx}" class="btnView px-2 py-1 border rounded text-sm mr-1">Buka</button>
+        <button data-idx="${idx}" class="btnDel px-2 py-1 border rounded text-sm text-red-600">Hapus</button>
+      </td>
+    `;
+    table.appendChild(tr);
+  });
+
+  qsa('.btnView').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const idx = Number(b.dataset.idx);
+      const arrSorted = loadDataForUser().slice().sort((a,b)=> new Date(b.date) - new Date(a.date));
+      const rec = arrSorted[idx];
+      qs('#ci_date').value = rec.date;
+      qs('#ci_height').value = rec.height_cm;
+      qs('#ci_weight').value = rec.weight_kg;
+      qs('#ci_age').value = rec.age;
+      qs('#ci_sleep').value = rec.sleep;
+      qs('#ci_fatigue').value = rec.fatigue;
+      qs('#ci_text').value = rec.text;
+      qs('#ci_moodemoji').value = rec.moodEmoji;
+      renderSummary(rec);
+      switchTab('checkin');
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  });
+
+  qsa('.btnDel').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const idx = Number(b.dataset.idx);
+      if(!confirm('Hapus entry ini?')) return;
+      const arrSorted = loadDataForUser().slice().sort((a,b)=> new Date(b.date) - new Date(a.date));
+      arrSorted.splice(idx,1);
+      saveDataForUser(arrSorted.reverse());
+      renderUserData();
+      showToast('Entry dihapus.');
+    });
+  });
+}
+
+/* --------------------------
+   Chart
+   -------------------------- */
+function renderChart(){
+  const ctx = qs('#mainChart').getContext('2d');
+  const raw = loadDataForUser().slice().sort((a,b)=> new Date(a.date) - new Date(b.date));
+  const labels = raw.map(r => r.date);
+  const obsData = raw.map(r => r.obs);
+  const jiwaData = raw.map(r => r.mental);
+  const bmiData = raw.map(r => r.bmi);
+
+  if(mainChart) mainChart.destroy();
+  mainChart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        { label:'OBS', data:obsData, tension:0.3, borderWidth:2, yAxisID:'y1', borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.08)' },
+        { label:'JIWA', data:jiwaData, tension:0.3, borderWidth:2, yAxisID:'y1', borderColor: '#fb7185', backgroundColor: 'rgba(251,113,133,0.06)' },
+        { label:'IMT', data:bmiData, tension:0.3, borderWidth:2, yAxisID:'y2', borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.06)' }
+      ]
+    },
+    options:{
+      responsive:true,
+      interaction:{ mode:'index', intersect:false },
+      scales:{
+        y1:{ type:'linear', position:'left', suggestedMin:0, suggestedMax:100, title:{display:true, text:'Skor (0-100)'} },
+        y2:{ type:'linear', position:'right', grid:{ drawOnChartArea:false }, title:{display:true, text:'IMT'} }
+      }
+    }
+  });
+}
+
+/* --------------------------
+   Tabs
+   -------------------------- */
+function switchTab(name){
+  qsa('.tabBtn').forEach(b => {
+    if(b.dataset.tab === name) b.classList.add('tab-active'); else b.classList.remove('tab-active');
+  });
+  qsa('.tabContent').forEach(el => el.classList.add('hidden'));
+  qs(`#tab-${name}`).classList.remove('hidden');
+}
+
+/* --------------------------
+   Form handling
+   -------------------------- */
+qs('#ci_fatigue').addEventListener('input', ()=> { qs('#fatigueValue').textContent = qs('#ci_fatigue').value; });
+
+qs('#formCheckin').addEventListener('submit', function(e){
+  e.preventDefault();
+  const errBox = qs('#ciError'); errBox.classList.add('hidden');
+
+  const date = qs('#ci_date').value || todayISO();
+  const height = parseFloat(qs('#ci_height').value);
+  const weight = parseFloat(qs('#ci_weight').value);
+  const age = parseInt(qs('#ci_age').value);
+  const sleep = parseFloat(qs('#ci_sleep').value);
+  const fatigue = parseInt(qs('#ci_fatigue').value);
+  const text = qs('#ci_text').value.trim();
+  const moodEmoji = qs('#ci_moodemoji').value;
+
+  if(!height || !weight || !age || isNaN(height) || isNaN(weight) || isNaN(age)){
+    errBox.textContent = 'Tolong isi tinggi, berat, dan usia dengan benar.'; errBox.classList.remove('hidden'); return;
+  }
+  if(isNaN(sleep) || sleep < 0){ errBox.textContent = 'Tolong isi jam tidur valid.'; errBox.classList.remove('hidden'); return; }
+  if(isNaN(fatigue) || fatigue < 1 || fatigue > 5){ errBox.textContent = 'Tingkat lelah harus 1–5.'; errBox.classList.remove('hidden'); return; }
+  if(!text){ if(!confirm('Catatan kosong — tetap simpan tanpa cerita?')) return; }
+
+  const entry = {
+    date,
+    height_cm: height,
+    weight_kg: weight,
+    age,
+    sex: 'female',
+    sleep,
+    fatigue,
+    text,
+    moodEmoji,
+    createdAt: Date.now()
+  };
+
+  const metrics = calculateFrom(entry);
+  const record = {...entry, ...metrics};
+
+  const arr = loadDataForUser() || [];
+  arr.push(record);
+  saveDataForUser(arr);
+  const meta = loadMeta(); meta.lastVisit = new Date().toISOString(); saveMeta(meta);
+
+  renderUserData();
+  renderSummary(record);
+
+  // small feedback
+  showToast('Journal tersimpan — terima kasih sudah menulis hari ini 💛');
+});
+
+/* --------------------------
+   Buttons
+   -------------------------- */
+qs('#btnSample').addEventListener('click', ()=>{
+  qs('#ci_date').value = todayISO();
+  qs('#ci_height').value = 165;
+  qs('#ci_weight').value = 60;
+  qs('#ci_age').value = 20;
+  qs('#ci_sleep').value = 7;
+  qs('#ci_fatigue').value = 3; qs('#fatigueValue').textContent = 3;
+  qs('#ci_text').value = "Hari ini agak sibuk, ada tugas tapi aku berusaha santai. Ada momen lucu bareng teman yang bikin aku tersenyum sebentar.";
+  qs('#ci_moodemoji').value = '😌';
+});
+
+qs('#btnPrint').addEventListener('click', ()=> window.print());
+qs('#btnExport').addEventListener('click', ()=>{
+  const data = loadDataForUser();
+  if(!data.length){ alert('Tidak ada data untuk diexport.'); return; }
+  const rows = [['date','height_cm','weight_kg','age','sleep','fatigue','text','moodEmoji','bmi','bmr','jiwa','physical','obs']];
+  data.forEach(r => rows.push([r.date,r.height_cm,r.weight_kg,r.age,r.sleep,r.fatigue, r.text.replace(/\n/g,' '), r.moodEmoji, r.bmi, r.bmr, r.mental, r.physical, r.obs]));
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `equilibria_${currentUser}_${todayISO()}.csv`; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+qs('#btnDeleteAll').addEventListener('click', ()=>{
+  if(!confirm('Hapus semua riwayatmu?')) return;
+  saveDataForUser([]);
+  renderUserData();
+  showToast('Semua riwayat dihapus.');
+});
+
+/* --------------------------
+   Tiny toast
+   -------------------------- */
+function showToast(text){
+  const t = document.createElement('div');
+  t.textContent = text;
+  t.className = 'fixed bottom-6 right-6 bg-white p-3 rounded-lg shadow-lg text-sm';
+  document.body.appendChild(t);
+  setTimeout(()=> t.classList.add('opacity-0'), 2400);
+  setTimeout(()=> t.remove(), 3000);
+}
+
+/* --------------------------
+   Initial boot
+   -------------------------- */
+(function init(){
+  renderAuth();
+  headerActions.querySelectorAll('button, #userBadge, #streakBadge').forEach(el=>el.classList.add('hidden'));
+  qsa('.tabBtn').forEach(b => b.addEventListener('click', ()=> switchTab(b.dataset.tab)));
+})();
+</script>
+
+</body>
+</html>
