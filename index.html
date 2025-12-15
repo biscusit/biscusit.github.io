@@ -52,39 +52,59 @@
     @media print { .no-print { display:none !important; } .surat{ box-shadow:none } }
   </style>
 </head>
+
 <body class="antialiased">
 
-  <div class="min-h-screen flex items-center justify-center p-4 sm:p-6">
-    <div id="app" class="w-full max-w-6xl">
+  <!-- Wrapper: jangan center vertikal biar enak di HP -->
+  <div class="min-h-screen p-4 sm:p-6">
+    <div id="app" class="mx-auto w-full max-w-6xl">
 
-      <!-- HEADER -->
-     <header class="sticky top-0 z-50 bg-white/80 backdrop-blur border-b">
-  <div class="mx-auto max-w-6xl px-4 py-3">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <!-- HEADER (Responsive + nyambung ke JS) -->
+      <header class="sticky top-0 z-50 no-print bg-white/80 backdrop-blur border-b rounded-xl">
+        <div class="mx-auto max-w-6xl px-4 py-3">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
-      <!-- Logo + Judul -->
-      <div class="flex items-center gap-3">
-        <div class="h-9 w-9 rounded-xl bg-orange-200 flex items-center justify-center font-bold">
-          EQ
+            <!-- Logo + Judul -->
+            <div class="flex items-center gap-3 min-w-0">
+              <img src="EQ.png" alt="EQ" class="h-9 w-9 rounded-xl shrink-0" />
+              <div class="min-w-0 leading-tight">
+                <div class="text-base sm:text-lg font-semibold truncate">Equilibria</div>
+                <div class="text-xs sm:text-sm text-gray-500 truncate">Jurnal Harian</div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div id="headerActions" class="flex flex-wrap gap-2 sm:flex-nowrap sm:justify-end">
+              <div id="userBadge" class="hidden w-full sm:w-auto px-3 py-2 rounded-lg border text-sm bg-white">
+                user
+              </div>
+
+              <div id="streakBadge" class="hidden w-full sm:w-auto px-3 py-2 rounded-lg border text-sm bg-white">
+                🔥 <span id="streakCount">0</span> hari
+              </div>
+
+              <button id="btnPrint" class="w-full sm:w-auto px-3 py-2 rounded-lg text-sm border bg-white">
+                Print
+              </button>
+
+              <button id="btnPDF" class="w-full sm:w-auto px-3 py-2 rounded-lg text-sm border bg-white">
+                Save PDF
+              </button>
+
+              <button id="btnExport" class="w-full sm:w-auto px-3 py-2 rounded-lg text-sm border bg-white">
+                Export CSV
+              </button>
+
+              <button id="btnLogout" class="hidden w-full sm:w-auto px-3 py-2 rounded-lg text-sm border bg-white">
+                Logout
+              </button>
+            </div>
+
+          </div>
         </div>
-        <div class="leading-tight">
-          <div class="text-base sm:text-lg font-semibold">Equilibria</div>
-          <div class="text-xs sm:text-sm text-gray-500">Jurnal Harian</div>
-        </div>
-      </div>
+      </header>
 
-      <!-- Tombol -->
-      <div class="flex flex-wrap gap-2">
-        <button class="w-full sm:w-auto px-3 py-2 rounded-lg text-sm border">Print</button>
-        <button class="w-full sm:w-auto px-3 py-2 rounded-lg text-sm border">Save PDF</button>
-        <button class="w-full sm:w-auto px-3 py-2 rounded-lg text-sm border">Export CSV</button>
-      </div>
-
-    </div>
-  </div>
-</header>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
 
         <!-- AUTH -->
         <aside id="authCard" class="md:col-span-1 glass p-6 rounded-xl shadow">
@@ -174,7 +194,7 @@
 
                 <!-- RIGHT: surat kecil (sticky note) -->
                 <aside class="w-full lg:w-80 relative">
-                  <div id="suratCard" class="surat lg:sticky">
+                  <div id="suratCard" class="surat lg:sticky top-20">
                     <div class="note">
                       <div class="flex items-start gap-3">
                         <div>
@@ -235,9 +255,9 @@
                 </div>
                 <div>
                   <div class="text-sm text-gray-600">Aksi</div>
-                  <div class="flex gap-2 mt-2">
-                    <button id="btnLogout2" class="px-3 py-2 rounded-xl border">Logout</button>
-                    <button id="btnDeleteAll" class="px-3 py-2 rounded-xl border text-red-600">Hapus Semua Riwayat</button>
+                  <div class="flex gap-2 mt-2 flex-wrap">
+                    <button id="btnLogout2" class="px-3 py-2 rounded-xl border w-full sm:w-auto">Logout</button>
+                    <button id="btnDeleteAll" class="px-3 py-2 rounded-xl border text-red-600 w-full sm:w-auto">Hapus Semua Riwayat</button>
                   </div>
                 </div>
               </div>
@@ -351,7 +371,6 @@ function renderAuth(){
     users.push({ username: u, password: p });
     saveUsers(users);
     localStorage.setItem(getUserDataKey(u), JSON.stringify([]));
-    // init used messages & meta
     const usedInit = {}; for(let r=0;r<10;r++) usedInit[r]=[];
     localStorage.setItem(getUsedMsgsKey(u), JSON.stringify(usedInit));
     localStorage.setItem(getMetaKey(u), JSON.stringify({ lastVisit: new Date().toISOString(), streak: 1 }));
@@ -362,15 +381,18 @@ function renderAuth(){
 }
 
 /* --------------------------
-   Login / Logout / Meta (streak & reminders)
+   Login / Logout / Meta
    -------------------------- */
 function loginUser(username){
   currentUser = username;
   authCard.classList.add('hidden');
   appArea.classList.remove('hidden');
+
+  // show header controls
   headerActions.querySelectorAll('button, #userBadge, #streakBadge').forEach(el=>el.classList.remove('hidden'));
   userBadge.textContent = username;
   qs('#profileUsername').textContent = username;
+
   qs('#btnLogout').addEventListener('click', logoutUser);
   qs('#btnLogout').classList.remove('hidden');
   qs('#btnLogout2')?.addEventListener('click', logoutUser);
@@ -437,7 +459,7 @@ function loadUsedMsgs(){ if(!currentUser) return {}; try{ return JSON.parse(loca
 function saveUsedMsgs(obj){ if(!currentUser) return; localStorage.setItem(getUsedMsgsKey(currentUser), JSON.stringify(obj)); }
 
 /* --------------------------
-   Sentiment / Jiwa Score (simple dictionary + negation + intensifier)
+   Sentiment
    -------------------------- */
 const posWords = { 'senang':2,'bahagia':3,'lega':2,'bersyukur':3,'seneng':2,'baik':1.5,'tenang':2,'semangat':2,'ceria':2,'puas':2, 'nyaman':2 };
 const negWords = { 'capek':-1.5,'lelah':-1.5,'pusing':-1.5,'malas':-1,'bingung':-1,'sedih':-2,'stress':-2.5,'stres':-2.5,'cemas':-2,'takut':-2,'kesal':-1.5,'kecewa':-1.8,'hancur':-3,'putus asa':-3 };
@@ -463,7 +485,7 @@ function analyzeTextSentiment(text){
 }
 
 /* --------------------------
-   Calculations: BMI, BMR, physical, mental, OBS
+   Calculations
    -------------------------- */
 function clamp(v,min,max){ return Math.min(max, Math.max(min, v)); }
 
@@ -481,7 +503,6 @@ function calculateFrom(entry){
   const fatigueScore = clamp(((6 - entry.fatigue) / 5) * 100, 0, 100);
 
   const textScore = analyzeTextSentiment(entry.text || '');
-
   const mental = Number((textScore*0.6 + sleepScore*0.2 + fatigueScore*0.2).toFixed(1));
   const obs = Number(((physical + mental) / 2).toFixed(1));
 
@@ -498,11 +519,9 @@ function calculateFrom(entry){
 }
 
 /* --------------------------
-   Comfort messages database (100 messages — 10 per range)
-   Tone: netral lembut (3-4 kalimat vibe)
+   Comfort messages (as-is)
    -------------------------- */
 const comfortMessages = [
-  // Range 0-10 (index 0)
   [
 `Hari ini kelihatannya benar-benar berat untukmu. Tidak apa kalau kamu butuh waktu untuk diam dan bernapas. Coba beri diri jeda kecil—tidak harus menyelesaikan apa pun sekarang.`,
 `Sepertinya hari ini penuh beban. Kamu berhak merasa lelah dan tidak sepenuhnya baik. Duduk sebentar, tarik napas dalam-dalam, dan biarkan tubuhmu sedikit rileks.`,
@@ -515,8 +534,6 @@ const comfortMessages = [
 `Hari yang sulit bukan ukuran dirimu. Kamu masih manusia yang butuh ruang untuk pulih. Perlahan-lahan, beri ruang pada dirimu sendiri.`,
 `Kamu sudah melakukan banyak hanya dengan bertahan sampai sini. Jangan lupa beri tubuh izin untuk istirahat. Semoga tidur nanti lebih lembut untukmu.`
   ],
-
-  // 11-20 (index 1)
   [
 `Kayaknya energimu lagi turun hari ini. Tidak apa—yang penting kamu tetap melakukan apa yang mampu. Sediakan waktu istirahat yang tulus tanpa rasa bersalah.`,
 `Mungkin hari ini terasa berat tapi tidak sampai membuatmu runtuh. Itu kemajuan kecil yang penting. Coba lakukan sesuatu ringan yang membuatmu lega.`,
@@ -529,8 +546,6 @@ const comfortMessages = [
 `Kamu berhak istirahat dari semua tuntutan. Lakukan sesuatu yang menghangatkan hati—maksudnya yang benar-benar membuatmu rileks.`,
 `Malam ini, biarkan tubuhmu menenangkan; kamu layak mengalami ketenangan setelah hari yang melelahkan.`
   ],
-
-  // 21-30 (index 2)
   [
 `Sepertinya banyak hal berputar di kepala kamu hari ini. Tidak apa untuk menarik mundur sedikit dan menata ulang. Langkah kecil akan terasa berarti nanti.`,
 `Kalau perasaanmu campur aduk, itu normal. Kamu sedang memproses dan itu proses yang butuh waktu. Perlahan saja, jangan paksakan semuanya selesai sekarang.`,
@@ -543,8 +558,6 @@ const comfortMessages = [
 `Ada nilai dalam perlambatan. Kamu tidak kalah karena mengambil waktu. Itu bentuk kebijaksanaan untuk merawat diri.`,
 `Sore ini cobalah hindari layar beberapa saat dan lakukan hal lembut untukmu. Itu bisa membantu menenangkan pikiran.`
   ],
-
-  // 31-40 (index 3)
   [
 `Kamu terlihat menahan banyak hari ini. Tidak apa untuk mengakui lelah itu. Lakukan rutinitas sederhana yang bikin nyaman—misal minum hangat atau stretching ringan.`,
 `Kalau perasaan naik turun, beri waktu untuk perasaan itu mengalir. Tidak semua harus diatur sekaligus. Satu langkah kecil itu berarti.`,
@@ -557,8 +570,6 @@ const comfortMessages = [
 `Rasa lelah emosional butuh perhatian lembut. Pijat pelan leher atau kompres hangat bisa menenangkan tubuhmu.`,
 `Setelah hari seperti ini, tidur yang nyaman sangat membantu. Atur suasana kamar agar lebih hangat dan tenang.`
   ],
-
-  // 41-50 (index 4)
   [
 `Hari ini terasa biasa tapi ada sedikit letih. Itu wajar. Coba beri waktu santai sejenak sebelum tidur agar badanmu pulih.`,
 `Kamu melakukan hal yang perlu hari ini, dan itu cukup. Jangan paksa dirimu untuk ekstra produktif saat energi menipis.`,
@@ -571,8 +582,6 @@ const comfortMessages = [
 `Hal-hal kecil yang menenangkan akan membantu memperbaiki suasana hati. Pilih satu dan nikmati dengan sengaja.`,
 `Kamu menang hari ini dengan cara yang tenang. Rayakan dengan hal sederhana yang bikin nyaman.`
   ],
-
-  // 51-60 (index 5)
   [
 `Hari ini terasa cukup baik, meski masih ada sisa lelah. Istirahat singkat akan bantu memulihkan. Jangan lupa hidrasi yang cukup.`,
 `Ada hal-hal positif hari ini yang mungkin kecil, tapi penting. Simpan itu sebagai penguat. Kamu sedang melakukan yang baik.`,
@@ -585,8 +594,6 @@ const comfortMessages = [
 `Kamu membuat langkah-langkah kecil yang positif. Biarkan hasilnya tumbuh perlahan—kamu nggak perlu terburu-buru.`,
 `Simpan hal yang membuatmu lega hari ini sebagai pengingat: kamu bisa menciptakan momen baik untuk diri sendiri.`
   ],
-
-  // 61-70 (index 6)
   [
 `Ada ketenangan ringan dalam dirimu hari ini. Terus pelihara itu dengan hal sederhana seperti napas dalam dan minum air hangat.`,
 `Kamu kelihatan stabil, itu menandakan kebiasaan baikmu bekerja. Jaga ritme tidur dan makan yang sehat.`,
@@ -599,8 +606,6 @@ const comfortMessages = [
 `Simpan momen ini di kepala sebagai bukti bahwa kamu bisa merawat diri dengan baik. Itu berharga.`,
 `Semoga malam ini memberimu tidur yang pulih. Kamu sudah pantas mendapat hari yang lebih lembut.`
   ],
-
-  // 71-80 (index 7)
   [
 `Hari ini terasa lebih cerah untukmu. Nikmati sensasi ringan itu dan simpan sebagai energi positif untuk esok.`,
 `Ada banyak momen kecil yang menyenangkan hari ini. Biarkan perasaan itu menempel dan menghangatkan malammu.`,
@@ -613,8 +618,6 @@ const comfortMessages = [
 `Energi positifmu menular—biarkan itu menuntunmu ke malam yang tenang. Kamu pantas merasakan ini.`,
 `Kamu sedang melakukan hal-hal dengan hati. Itu memberi kedamaian; pertahankan dengan ritme yang lembut.`
   ],
-
-  // 81-90 (index 8)
   [
 `Kamu menjalani hari dengan baik — tenang dan konsisten. Hargai usaha kecil yang sudah kamu lakukan hari ini.`,
 `Ada keseimbangan yang kuat dalam caramu mengatur diri. Itu sangat positif. Istirahat yang cukup akan bantu mempertahankan itu.`,
@@ -627,8 +630,6 @@ const comfortMessages = [
 `Jangan ragu memberi penghargaan untuk diri sendiri; itu bagian dari perawatan emosional yang sehat.`,
 `Kamu layak mendapat hari-hari seperti ini. Simpan momen positif ini di catatan kecilmu.`
   ],
-
-  // 91-100 (index 9)
   [
 `Hari ini kamu benar-benar menata diri dengan baik. Rasakan itu sepenuhnya dan biarkan dirimu menikmati hasilnya.`,
 `Ada keharmonisan dalam keseharianmu sekarang. Itu bukan kebetulan, itu hasil perhatian yang konsisten pada dirimu.`,
@@ -662,13 +663,11 @@ function rangeIndexFromScore(score){
 function pickComfortMessage(score){
   const idx = rangeIndexFromScore(score);
   const arr = comfortMessages[idx];
-  if(!currentUser) {
-    return arr[Math.floor(Math.random()*arr.length)];
-  }
+  if(!currentUser) return arr[Math.floor(Math.random()*arr.length)];
+
   let used = loadUsedMsgs();
   if(!used || typeof used !== 'object') used = {};
   if(!used[idx]) used[idx] = [];
-  // reset if exhausted
   if(used[idx].length >= arr.length) used[idx] = [];
   const unused = [];
   for(let i=0;i<arr.length;i++) if(!used[idx].includes(i)) unused.push(i);
@@ -726,9 +725,11 @@ function renderSummary(rec){
   if(rec.sleepScore < 60) suggestionArr.push('Tidur kurang: usahakan tidur 7–9 jam.');
   if(rec.fatigueScore < 60) suggestionArr.push('Lelah tinggi: beri jeda istirahat singkat sekarang.');
 
-  qs('#suratText').innerHTML = `<div class="surat">${comfort}</div>`;
+  // FIX: jangan bikin surat double-box
+  qs('#suratText').textContent = comfort;
   qs('#suratMeta').textContent = metaText;
   qs('#out_suggestion').innerHTML = suggestionArr.map(s=>`• ${s}`).join('<br>');
+
   const affs = [
     "Kamu tidak sendiri — aku selalu ada di sini untuk dengerin.",
     "Kamu berharga, dan kamu pantas beristirahat.",
@@ -736,7 +737,11 @@ function renderSummary(rec){
     "Tarik napas pelan. Kamu layak mendapat kelembutan."
   ];
   qs('#out_affirm').textContent = affs[Math.floor(Math.random()*affs.length)];
-  const card = qs('#suratCard'); card.classList.remove('glitter'); void card.offsetWidth; card.classList.add('glitter');
+
+  const card = qs('#suratCard');
+  card.classList.remove('glitter');
+  void card.offsetWidth;
+  card.classList.add('glitter');
 }
 
 /* --------------------------
@@ -776,6 +781,7 @@ function renderHistoryTable(){
       qs('#ci_age').value = rec.age;
       qs('#ci_sleep').value = rec.sleep;
       qs('#ci_fatigue').value = rec.fatigue;
+      qs('#fatigueValue').textContent = rec.fatigue;
       qs('#ci_text').value = rec.text;
       qs('#ci_moodemoji').value = rec.moodEmoji;
       renderSummary(rec);
@@ -885,12 +891,14 @@ qs('#formCheckin').addEventListener('submit', function(e){
   const arr = loadDataForUser() || [];
   arr.push(record);
   saveDataForUser(arr);
-  const meta = loadMeta(); meta.lastVisit = new Date().toISOString(); saveMeta(meta);
+
+  const meta = loadMeta();
+  meta.lastVisit = new Date().toISOString();
+  saveMeta(meta);
 
   renderUserData();
   renderSummary(record);
 
-  // small feedback
   showToast('Journal tersimpan — terima kasih sudah menulis hari ini 💛');
 });
 
@@ -909,6 +917,8 @@ qs('#btnSample').addEventListener('click', ()=>{
 });
 
 qs('#btnPrint').addEventListener('click', ()=> window.print());
+qs('#btnPDF').addEventListener('click', ()=> window.print());
+
 qs('#btnExport').addEventListener('click', ()=>{
   const data = loadDataForUser();
   if(!data.length){ alert('Tidak ada data untuk diexport.'); return; }
@@ -917,7 +927,12 @@ qs('#btnExport').addEventListener('click', ()=>{
   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = `equilibria_${currentUser}_${todayISO()}.csv`; document.body.appendChild(a); a.click(); a.remove();
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `equilibria_${currentUser}_${todayISO()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
   URL.revokeObjectURL(url);
 });
 
@@ -951,6 +966,4 @@ function showToast(text){
 </script>
 
 </body>
-
 </html>
-
